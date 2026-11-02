@@ -17,6 +17,7 @@
  *****************************************************************************/
 
 #include <PalmOS.h>
+#include <TxtGlue.h>
 #include <AlarmMgr.h>
 #include <FeatureMgr.h>
 
@@ -574,11 +575,11 @@ static void DrawAlarm (PendingAlarmType * pendingP)
 			
 			descFitWith = min(descFitWith, maxWidth);
 			
-			WinDrawTruncChars(ptr, descFitLen, alarmDescDrawX, y, descFitWith);
+			DateDrawTruncChars(ptr, descFitLen, alarmDescDrawX, y, descFitWith);
 			break;
 			}
 		else 
-			WinDrawTruncChars(ptr, descFitLen, alarmDescDrawX, y, maxWidth);
+			DateDrawTruncChars(ptr, descFitLen, alarmDescDrawX, y, maxWidth);
 			
 		descLen -= length;
 		ptr += length;
@@ -611,6 +612,13 @@ static void DrawAlarm (PendingAlarmType * pendingP)
  *								title colors are drawn correctly.
  *
  ***********************************************************************/
+static Boolean DateAlarmHasOS35Features (void)
+{
+	UInt32 romVersion;
+	return (FtrGet (sysFtrCreator, sysFtrNumROMVersion, &romVersion) == errNone &&
+		romVersion >= 0x03500000UL);
+}
+
 static void DrawAlarmTitle ()
 {
 	DateTimeType 				dateTime;
@@ -623,9 +631,9 @@ static void DrawAlarmTitle ()
 	RectangleType				r;
 	Coord							x;
 	FontID						currFont;
-	IndexedColorType 			currForeColor;
-	IndexedColorType 			currBackColor;
-	IndexedColorType			currTextColor;
+	IndexedColorType 			currForeColor = 0;
+	IndexedColorType 			currBackColor = 0;
+	IndexedColorType			currTextColor = 0;
 
 	TimSecondsToDateTime (TimGetSeconds(), &dateTime);
 	TimeToAscii (dateTime.hour, dateTime.minute, (TimeFormatType) PrefGetPreference (prefTimeFormat),
@@ -638,21 +646,35 @@ static void DrawAlarmTitle ()
 	WinGetWindowExtent (&windowWidth, &windowHeight);
 	
 	currFont = FntSetFont (titleFont);
- 	currForeColor = WinSetForeColor (UIColorGetTableEntryIndex(UIDialogFrame));
- 	currBackColor = WinSetBackColor (UIColorGetTableEntryIndex(UIDialogFill));
- 	currTextColor = WinSetTextColor (UIColorGetTableEntryIndex(UIDialogFrame));
+ 	if (DateAlarmHasOS35Features ())
+ 		{
+ 		currForeColor = WinSetForeColor (UIColorGetTableEntryIndex(UIDialogFrame));
+ 		currBackColor = WinSetBackColor (UIColorGetTableEntryIndex(UIDialogFill));
+ 		currTextColor = WinSetTextColor (UIColorGetTableEntryIndex(UIDialogFrame));
+ 		}
 	
 	r = (RectangleType) { {0, 1}, {windowWidth, FntLineHeight ()} };
 	x  = (windowWidth - FntCharsWidth (titleP, titleLen) + 1) >> 1;
 
 	WinDrawLine (1, 0, r.extent.x-2, 0);
 	WinDrawRectangle (&r, 0);
-	WinDrawInvertedChars (timeStr, StrLen(timeStr), titleMarginX, 0);
-	WinDrawInvertedChars (titleP, titleLen, x, 0);
+	if (DateAlarmHasOS35Features ())
+		{
+		WinDrawInvertedChars (timeStr, StrLen(timeStr), titleMarginX, 0);
+		WinDrawInvertedChars (titleP, titleLen, x, 0);
+		}
+	else
+		{
+		WinDrawChars (timeStr, StrLen(timeStr), titleMarginX, 0);
+		WinDrawChars (titleP, titleLen, x, 0);
+		}
 	
-   WinSetForeColor (currForeColor);
-   WinSetBackColor (currBackColor);
-   WinSetTextColor (currTextColor);
+   if (DateAlarmHasOS35Features ())
+   	{
+   	WinSetForeColor (currForeColor);
+   	WinSetBackColor (currBackColor);
+   	WinSetTextColor (currTextColor);
+   	}
 	FntSetFont (currFont);
 	MemPtrUnlock(titleP);
 }

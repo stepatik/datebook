@@ -553,7 +553,7 @@ static void SyncNotification (void)
  *
  *	HISTORY:
  *		04/18/95	art	Created by Art Lamb
- *		08/03/99	kwk	Use WinDrawTruncChars to handle truncation.
+ *		08/03/99	kwk	Use the compatible truncation helper.
  *
  ***********************************************************************/
 
@@ -588,7 +588,7 @@ static void SearchDraw (ApptDBRecordPtr apptRecP, Int16 x, Int16 y,
 	desc = apptRecP->description;
 	ptr = StrChr(desc, linefeedChr);
 	len = (ptr == NULL ? StrLen(desc) : (UInt16)(ptr - desc));
-	WinDrawTruncChars (desc, len, x, y, maxDescWidth);
+	DateDrawTruncChars (desc, len, x, y, maxDescWidth);
 
 	// If the event is repeating, draw the repeat type.
 	if (apptRecP->repeat)
@@ -1115,6 +1115,74 @@ Char* DateParamString(const Char* inTemplate, const Char* param0,
 		}
 	*dst = '\0';
 	return result;
+}
+
+
+/* These helpers replace newer truncation traps missing from older ROMs. */
+UInt16 DateTextWidthToFit (const Char* text, UInt16 length,
+		Coord maxWidth, Int16* textWidthP)
+{
+	UInt16 offset = 0;
+	UInt16 charBytes;
+	Int16 candidateWidth;
+	WChar character;
+
+	if (textWidthP)
+		*textWidthP = 0;
+	if (maxWidth <= 0)
+		return 0;
+
+	while (offset < length)
+		{
+		charBytes = TxtGlueGetNextChar (text, offset, &character);
+		if (charBytes == 0 || offset + charBytes > length)
+			break;
+
+		candidateWidth = FntCharsWidth (text, offset + charBytes);
+		if (candidateWidth > maxWidth)
+			break;
+
+		offset += charBytes;
+		if (textWidthP)
+			*textWidthP = candidateWidth;
+		}
+
+	return offset;
+}
+
+
+void DateDrawTruncChars (const Char* text, UInt16 length,
+		Coord x, Coord y, Coord maxWidth)
+{
+	static const Char ellipsis[] = "...";
+	UInt16 charsToDraw;
+	Int16 drawWidth = 0;
+	Int16 ellipsisWidth;
+
+	if (maxWidth <= 0 || length == 0)
+		return;
+
+	charsToDraw = DateTextWidthToFit (text, length, maxWidth, &drawWidth);
+	if (charsToDraw >= length)
+		{
+		WinDrawChars (text, length, x, y);
+		return;
+		}
+
+	ellipsisWidth = FntCharsWidth (ellipsis, 3);
+	if (maxWidth <= ellipsisWidth)
+		{
+		charsToDraw = DateTextWidthToFit (text, length, maxWidth, &drawWidth);
+		if (charsToDraw > 0)
+			WinDrawChars (text, charsToDraw, x, y);
+		return;
+		}
+
+	charsToDraw = DateTextWidthToFit (text, length,
+			maxWidth - ellipsisWidth, &drawWidth);
+	if (charsToDraw > 0)
+		WinDrawChars (text, charsToDraw, x, y);
+	WinDrawChars (ellipsis, 3, x + drawWidth, y);
 }
 
 

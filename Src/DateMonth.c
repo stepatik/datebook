@@ -875,7 +875,10 @@ static void MonthSelectDayRect (MonthPtr monthP, RectangleType *r, Boolean selec
 	// it's somewhat unsightly to see it all happen onscreen.  But still restrict
 	// the clipping rectangle to get the effect we want.
 	//
-	lockedWinP = WinScreenLock(winLockCopy);
+	if (MonthViewHasOS35Features ())
+		lockedWinP = WinScreenLock(winLockCopy);
+	else
+		lockedWinP = NULL;
 	WinGetClip(&savedClip);
 	WinSetClip(r);
 	

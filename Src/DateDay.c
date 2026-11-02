@@ -144,6 +144,105 @@ static __attribute__((section("code2"))) Boolean DayViewHasOS35Features (void)
 		romVersion >= 0x03500000UL);
 }
 
+
+static __attribute__((section("code2"))) Boolean DatebookSelectTimeFallback (
+		TimePtr startP, TimePtr endP, const Char* titleP)
+{
+	FormPtr formP;
+	ListPtr startHourListP;
+	ListPtr startMinuteListP;
+	ListPtr endHourListP;
+	ListPtr endMinuteListP;
+	ControlPtr controlP;
+	Int16 startHour;
+	Int16 startMinute;
+	Int16 endHour;
+	Int16 endMinute;
+	Int16 button;
+	Boolean noTimeSelected;
+
+	formP = FrmInitForm (TimePickerDialog);
+	if (!formP)
+		return false;
+
+	FrmSetTitle (formP, (Char*)titleP);
+	startHourListP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerStartHourList));
+	startMinuteListP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerStartMinuteList));
+	endHourListP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerEndHourList));
+	endMinuteListP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerEndMinuteList));
+
+	startHour = min (startP->hours, 23);
+	startMinute = min (startP->minutes / 5, 11);
+	if (endP->hours >= 24)
+		{
+		endHour = 23;
+		endMinute = 11;
+		}
+	else
+		{
+		endHour = endP->hours;
+		endMinute = min (endP->minutes / 5, 11);
+		}
+	LstSetSelection (startHourListP, startHour);
+	LstSetSelection (startMinuteListP, startMinute);
+	LstSetSelection (endHourListP, endHour);
+	LstSetSelection (endMinuteListP, endMinute);
+
+	controlP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerStartHourTrigger));
+	CtlSetLabel (controlP, LstGetSelectionText (startHourListP, startHour));
+	controlP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerStartMinuteTrigger));
+	CtlSetLabel (controlP, LstGetSelectionText (startMinuteListP, startMinute));
+	controlP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerEndHourTrigger));
+	CtlSetLabel (controlP, LstGetSelectionText (endHourListP, endHour));
+	controlP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerEndMinuteTrigger));
+	CtlSetLabel (controlP, LstGetSelectionText (endMinuteListP, endMinute));
+
+	// As with the native picker, show a default time range even for a new
+	// untimed appointment. The user can choose No Time explicitly.
+	controlP = FrmGetObjectPtr (formP,
+			FrmGetObjectIndex (formP, TimePickerNoTimeCheckbox));
+	CtlSetValue (controlP, false);
+
+	button = FrmDoDialog (formP);
+	if (button == TimePickerOKButton)
+		{
+		controlP = FrmGetObjectPtr (formP,
+				FrmGetObjectIndex (formP, TimePickerNoTimeCheckbox));
+		noTimeSelected = CtlGetValue (controlP);
+		if (noTimeSelected)
+			{
+			TimeToInt (*startP) = apptNoTime;
+			TimeToInt (*endP) = apptNoTime;
+			}
+		else
+			{
+			startHour = LstGetSelection (startHourListP);
+			startMinute = LstGetSelection (startMinuteListP);
+			endHour = LstGetSelection (endHourListP);
+			endMinute = LstGetSelection (endMinuteListP);
+			if (startHour < 0) startHour = 8;
+			if (startMinute < 0) startMinute = 0;
+			if (endHour < 0) endHour = min (startHour + 1, 23);
+			if (endMinute < 0) endMinute = startMinute;
+			startP->hours = startHour;
+			startP->minutes = startMinute * 5;
+			endP->hours = endHour;
+			endP->minutes = endMinute * 5;
+			}
+		}
+
+	FrmDeleteForm (formP);
+	return (button == TimePickerOKButton);
+}
+
 static __attribute__((section("code2"))) Boolean DayViewRowMasked (TablePtr table, Int16 row)
 {
 	if (DayViewHasOS35Features ())
@@ -410,8 +509,8 @@ static __attribute__((section("code2"))) Boolean GetTime (TimePtr startP, TimePt
 	else if (romVersion >= 0x03300000UL)
 		selected = SelectTimeV33 (&start, &end, untimed, title, DayStartHour);
 	else
-		// The legacy ROM has no time-picker trap. Keep the appointment untimed.
-		selected = false;
+		// Older ROMs have no native range picker, so use our own form.
+		selected = DatebookSelectTimeFallback (&start, &end, title);
 
 	MemPtrUnlock (title);
 
@@ -3776,9 +3875,9 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	UInt16 descLen, ellipsisWidth;
 	Char* linefeedP;
 	Int16 descWidth;
-	IndexedColorType curForeColor;
-	IndexedColorType curBackColor;
-	IndexedColorType curTextColor;
+	IndexedColorType curForeColor = 0;
+	IndexedColorType curBackColor = 0;
+	IndexedColorType curTextColor = 0;
 	UInt8 * lockedWinP;
 
 	// Get current record and related info.
@@ -3791,7 +3890,10 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	// the NoteView title.  We REALLY need to make a variant for doing
 	// this in a more official way!
 	//
-	lockedWinP = WinScreenLock (winLockCopy);
+	if (DayViewHasOS35Features ())
+		lockedWinP = WinScreenLock (winLockCopy);
+	else
+		lockedWinP = NULL;
 
 	FrmDrawForm(frm);
 
@@ -3812,9 +3914,12 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	// because FrmDrawForm() leaves the fore/back colors in a state that we
 	// don't want here.
 	//
- 	curForeColor = WinSetForeColor (UIColorGetTableEntryIndex(UIFormFrame));
- 	curBackColor = WinSetBackColor (UIColorGetTableEntryIndex(UIFormFill));
- 	curTextColor = WinSetTextColor (UIColorGetTableEntryIndex(UIFormFrame));
+	if (DayViewHasOS35Features ())
+		{
+		curForeColor = WinSetForeColor (UIColorGetTableEntryIndex(UIFormFrame));
+		curBackColor = WinSetBackColor (UIColorGetTableEntryIndex(UIFormFill));
+		curTextColor = WinSetTextColor (UIColorGetTableEntryIndex(UIFormFrame));
+		}
 	curFont = FntSetFont (noteTitleFont);
 
 	// Erase the Form's title area and draw the NoteView's.
@@ -3822,20 +3927,27 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	WinEraseRectangle (&eraseRect, 0);
 	WinDrawRectangle (&drawRect, 3);
 
-	if (FntWidthToOffset (desc, descLen, maxWidth, NULL, &descWidth) != descLen)
+	if (DateTextWidthToFit (desc, descLen, maxWidth, &descWidth) != descLen)
 		{
 		ellipsisWidth = FntCharWidth(chrEllipsis);
-		descLen = FntWidthToOffset (desc, descLen, maxWidth - ellipsisWidth, NULL, &descWidth);
+		descLen = DateTextWidthToFit (desc, descLen,
+			maxWidth - ellipsisWidth, &descWidth);
 		}
 
 	x = (formWidth - descWidth - ellipsisWidth + 1) / 2;
 
-	WinDrawInvertedChars (desc, descLen, x, 1);
+	if (DayViewHasOS35Features ())
+		WinDrawInvertedChars (desc, descLen, x, 1);
+	else
+		WinDrawChars (desc, descLen, x, 1);
 	if (ellipsisWidth != 0)
 		{
 		Char buf[maxCharBytes + sizeOf7BitChar(chrNull)];
 		buf[TxtGlueSetNextChar(buf, 0, chrEllipsis)] = chrNull;
-		WinDrawInvertedChars (buf, StrLen(buf), x + descWidth, 1);
+		if (DayViewHasOS35Features ())
+			WinDrawInvertedChars (buf, StrLen(buf), x + descWidth, 1);
+		else
+			WinDrawChars (buf, StrLen(buf), x + descWidth, 1);
 		}
 
 	// Now that we've drawn everything, blast it all back on the screen at once.
@@ -3849,9 +3961,12 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 
    // Restore window colors and font.
    //
-   WinSetForeColor (curForeColor);
-   WinSetBackColor (curBackColor);
-   WinSetTextColor (curTextColor);
+	if (DayViewHasOS35Features ())
+		{
+		WinSetForeColor (curForeColor);
+		WinSetBackColor (curBackColor);
+		WinSetTextColor (curTextColor);
+		}
 	FntSetFont (curFont);
 }
 
@@ -4910,10 +5025,13 @@ static __attribute__((section("code2"))) void DayViewDrawTimeBars (void)
 
 		for (i = 0; i < maxTimeBarColumns; i++)
 			{
-			if (i == 0)
-				WinSetForeColor(UIColorGetTableEntryIndex(UIObjectForeground));
-			else
-				WinSetForeColor(UIColorGetTableEntryIndex(UIWarning));
+			if (DayViewHasOS35Features ())
+				{
+				if (i == 0)
+					WinSetForeColor(UIColorGetTableEntryIndex(UIObjectForeground));
+				else
+					WinSetForeColor(UIColorGetTableEntryIndex(UIWarning));
+				}
 
 			if (TimeToInt (appts[apptIndex].startTime) >= TimeToInt (endTime[i]))
 				{

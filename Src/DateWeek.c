@@ -417,7 +417,11 @@ static __attribute__((section("code3"))) void WeekViewUpdateScrollers (FormPtr f
 	scrollableDown = (week->endHour < week->lastEventHour);
 	upIndex = FrmGetObjectIndex (frm, WeekUpButton);
 	downIndex = FrmGetObjectIndex (frm,WeekDownButton);
-	FrmUpdateScrollers (frm, upIndex, downIndex, scrollableUp, scrollableDown);
+	// The legacy ROM's diagnostic layout places the invisible scroll controls
+	// over the grid edge; FrmUpdateScrollers draws a rail through its lower-right
+	// corner. Keep the controls for event handling, but omit that visual rail.
+	if (WeekViewHasOS35Features ())
+		FrmUpdateScrollers (frm, upIndex, downIndex, scrollableUp, scrollableDown);
 
 	MemPtrUnlock(week);
 	}	//	end of WeekViewUpdateScrollers
@@ -806,7 +810,7 @@ static __attribute__((section("code3"))) WinHandle WeekViewDrawDescription (Time
 		ptr = StrChr (desc, linefeedChr);
 
 		charsToDraw = (ptr == NULL ? StrLen (desc) : ptr - desc);
-		WinDrawTruncChars(desc, charsToDraw, x, y, maxDescWidth);
+		DateDrawTruncChars(desc, charsToDraw, x, y, maxDescWidth);
 		}
 
 	FntSetFont (curFont);

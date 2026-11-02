@@ -72,6 +72,20 @@
 #define DetailsDeleteButton				1318
 #define DetailsNoteButton					1319
 
+// Time picker fallback for ROMs without the native SelectTime trap.
+#define TimePickerDialog					2300
+#define TimePickerStartHourTrigger		2301
+#define TimePickerStartMinuteTrigger	2302
+#define TimePickerEndHourTrigger		2303
+#define TimePickerEndMinuteTrigger		2304
+#define TimePickerNoTimeCheckbox		2305
+#define TimePickerOKButton				2306
+#define TimePickerCancelButton			2307
+#define TimePickerStartHourList			2311
+#define TimePickerStartMinuteList		2312
+#define TimePickerEndHourList			2313
+#define TimePickerEndMinuteList			2314
+
 
 // Repeat Dialog Box.
 // Note: the code is depends on the current order of the ui object.

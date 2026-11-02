@@ -334,6 +334,12 @@ extern Int32 TimeToWait (void);
 extern Char* DateParamString(const Char* inTemplate, const Char* param0,
 			const Char* param1, const Char* param2, const Char* param3);
 
+extern void DateDrawTruncChars (const Char* text, UInt16 length,
+		Coord x, Coord y, Coord maxWidth);
+
+extern UInt16 DateTextWidthToFit (const Char* text, UInt16 length,
+		Coord maxWidth, Int16* textWidthP);
+
 extern __attribute__((section("code2"))) void DoSecurity (void);
 
 extern Boolean ClearEditState (void);
