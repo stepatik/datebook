@@ -1,0 +1,61 @@
+# Linux command-line build. Kept separate from Pods-generated makefiles.
+ROOT := ..
+CC := m68k-palmos-gcc
+AS := m68k-palmos-as
+MULTIGEN := m68k-palmos-multigen
+BUILD_PRC := build-prc
+PILRC := pilrc
+
+SDK_VERSION ?= sdk-3.5
+APP_NAME ?= GoogleCalendar
+CREATOR_ID ?= PLM1
+
+CFLAGS := -D__PALMOS__=0x03500000 -O2 -g -fexceptions -UNDEBUG -Wall \
+	$(subst sdk-,-palmos,$(SDK_VERSION))
+SOURCES := DateAlarm DateDB DateDay DateDisplay DateGlobals DateMonth DatePref DateWeek Datebook
+OBJECTS := $(addprefix Src/,$(addsuffix .o,$(SOURCES)))
+RESOURCE_BINS := $(wildcard $(ROOT)/*.bin)
+DAYVIEW_FORM_BIN := DayViewTestResources/tFRM03e8.bin
+WEEKVIEW_FORM_BIN := WeekViewTestResources/tFRM044c.bin
+MONTHVIEW_FORM_BIN := MonthViewTestResources/tFRM04b0.bin
+PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/tFRM03E8.bin $(ROOT)/tFRM044C.bin $(ROOT)/tFRM04B0.bin,$(RESOURCE_BINS)) \
+	$(DAYVIEW_FORM_BIN) $(WEEKVIEW_FORM_BIN) $(MONTHVIEW_FORM_BIN)
+
+.PHONY: all clean
+all: $(APP_NAME).prc
+
+Src/%.o: $(ROOT)/Src/%.c
+	$(CC) -c $(CFLAGS) -o $@ $<
+
+multiple_code_sections.s multiple_code_sections.ld &: $(ROOT)/DateBook.def
+	$(MULTIGEN) -b multiple_code_sections $(ROOT)/DateBook.def
+
+multiple_code_sections.o: multiple_code_sections.s
+	$(AS) -o $@ $<
+
+DateBook: $(OBJECTS) multiple_code_sections.o multiple_code_sections.ld
+	$(CC) -g -o $@ $(OBJECTS) multiple_code_sections.o multiple_code_sections.ld -lPalmOSGlue
+
+$(DAYVIEW_FORM_BIN): $(ROOT)/rsc/DateBook.rcp
+	mkdir -p DayViewTestResources
+	$(PILRC) -I $(ROOT)/rsc $< DayViewTestResources
+	test -s $@
+
+$(WEEKVIEW_FORM_BIN): $(ROOT)/rsc/DateWeekTest.rcp
+	mkdir -p WeekViewTestResources
+	$(PILRC) -I $(ROOT)/rsc $< WeekViewTestResources
+	test -s $@
+
+$(MONTHVIEW_FORM_BIN): $(ROOT)/rsc/DateMonthTest.rcp
+	mkdir -p MonthViewTestResources
+	$(PILRC) -I $(ROOT)/rsc $< MonthViewTestResources
+	test -s $@
+
+$(APP_NAME).prc: DateBook $(ROOT)/DateBook.def $(PACKAGED_RESOURCE_BINS)
+	$(BUILD_PRC) $(ROOT)/DateBook.def -c '$(CREATOR_ID)' -n '$(APP_NAME)' -o $@ $(PACKAGED_RESOURCE_BINS) DateBook
+
+clean:
+	rm -f $(OBJECTS) $(addprefix Src/,$(addsuffix .d,$(SOURCES))) \
+		multiple_code_sections.s multiple_code_sections.ld multiple_code_sections.o \
+		DateBook $(APP_NAME).prc
+	rm -rf DayViewTestResources WeekViewTestResources MonthViewTestResources
