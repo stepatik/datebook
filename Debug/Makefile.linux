@@ -14,12 +14,12 @@ CFLAGS := -D__PALMOS__=0x03500000 -O2 -g -fexceptions -UNDEBUG -Wall \
 	$(subst sdk-,-palmos,$(SDK_VERSION))
 SOURCES := DateAlarm DateDB DateDay DateDisplay DateGlobals DateMonth DatePref DateWeek Datebook
 OBJECTS := $(addprefix Src/,$(addsuffix .o,$(SOURCES)))
-RESOURCE_BINS := $(wildcard $(ROOT)/*.bin)
+RESOURCE_BINS := $(wildcard $(ROOT)/Resources/Bins/*.bin)
 DAYVIEW_FORM_BIN := DayViewTestResources/tFRM03e8.bin
 WEEKVIEW_FORM_BIN := WeekViewTestResources/tFRM044c.bin
 MONTHVIEW_FORM_BIN := MonthViewTestResources/tFRM04b0.bin
 TIMEPICKER_FORM_BIN := TimePickerResources/tFRM08fc.bin
-PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/tFRM03E8.bin $(ROOT)/tFRM044C.bin $(ROOT)/tFRM04B0.bin,$(RESOURCE_BINS)) \
+PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/Resources/Bins/tFRM03E8.bin $(ROOT)/Resources/Bins/tFRM044C.bin $(ROOT)/Resources/Bins/tFRM04B0.bin,$(RESOURCE_BINS)) \
 	$(DAYVIEW_FORM_BIN) $(WEEKVIEW_FORM_BIN) $(MONTHVIEW_FORM_BIN) \
 	$(TIMEPICKER_FORM_BIN)
 
