@@ -20,9 +20,13 @@ WEEKVIEW_FORM_BIN := WeekViewTestResources/tFRM044c.bin
 MONTHVIEW_FORM_BIN := MonthViewTestResources/tFRM04b0.bin
 SYNCDEBUG_FORM_BIN := SyncDebugResources/tFRM04c4.bin
 TIMEPICKER_FORM_BIN := TimePickerResources/tFRM08fc.bin
-PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/Resources/Bins/tFRM03E8.bin $(ROOT)/Resources/Bins/tFRM044C.bin $(ROOT)/Resources/Bins/tFRM04B0.bin,$(RESOURCE_BINS)) \
+DETAILS_FORM_BIN := DetailsFormResources/tFRM0514.bin
+REPEAT_FORM_BIN := RepeatFormResources/tFRM0578.bin
+RANGE_FORM_BIN := RangeFormResources/tFRM0834.bin
+NOTE_FORM_BIN := NoteFormResources/tFRM2ac6.bin
+PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/Resources/Bins/tFRM03E8.bin $(ROOT)/Resources/Bins/tFRM044C.bin $(ROOT)/Resources/Bins/tFRM04B0.bin $(ROOT)/Resources/Bins/tFRM0514.bin $(ROOT)/Resources/Bins/tFRM0578.bin $(ROOT)/Resources/Bins/tFRM0834.bin,$(RESOURCE_BINS)) \
 	$(DAYVIEW_FORM_BIN) $(WEEKVIEW_FORM_BIN) $(MONTHVIEW_FORM_BIN) \
-	$(SYNCDEBUG_FORM_BIN) $(TIMEPICKER_FORM_BIN)
+	$(SYNCDEBUG_FORM_BIN) $(TIMEPICKER_FORM_BIN) $(DETAILS_FORM_BIN) $(REPEAT_FORM_BIN) $(RANGE_FORM_BIN) $(NOTE_FORM_BIN)
 
 .PHONY: all clean
 all: $(APP_NAME).prc
@@ -64,6 +68,26 @@ $(TIMEPICKER_FORM_BIN): $(ROOT)/rsc/DateTimePicker.rcp
 	$(PILRC) -I $(ROOT)/rsc $< TimePickerResources
 	test -s $@
 
+$(DETAILS_FORM_BIN): $(ROOT)/rsc/DateDetails.rcp
+	mkdir -p DetailsFormResources
+	$(PILRC) -I $(ROOT)/rsc $< DetailsFormResources
+	test -s $@
+
+$(REPEAT_FORM_BIN): $(ROOT)/rsc/DateRepeat.rcp
+	mkdir -p RepeatFormResources
+	$(PILRC) -I $(ROOT)/rsc $< RepeatFormResources
+	test -s $@
+
+$(RANGE_FORM_BIN): $(ROOT)/rsc/DateApply.rcp
+	mkdir -p RangeFormResources
+	$(PILRC) -I $(ROOT)/rsc $< RangeFormResources
+	test -s $@
+
+$(NOTE_FORM_BIN): $(ROOT)/rsc/DateNote.rcp
+	mkdir -p NoteFormResources
+	$(PILRC) -I $(ROOT)/rsc $< NoteFormResources
+	test -s $@
+
 $(APP_NAME).prc: DateBook $(ROOT)/DateBook.def $(PACKAGED_RESOURCE_BINS)
 	$(BUILD_PRC) $(ROOT)/DateBook.def -c '$(CREATOR_ID)' -n '$(APP_NAME)' -o $@ $(PACKAGED_RESOURCE_BINS) DateBook
 
@@ -71,4 +95,4 @@ clean:
 	rm -f $(OBJECTS) $(addprefix Src/,$(addsuffix .d,$(SOURCES))) \
 		multiple_code_sections.s multiple_code_sections.ld multiple_code_sections.o \
 		DateBook $(APP_NAME).prc
-	rm -rf DayViewTestResources WeekViewTestResources MonthViewTestResources SyncDebugResources TimePickerResources
+	rm -rf DayViewTestResources WeekViewTestResources MonthViewTestResources SyncDebugResources TimePickerResources DetailsFormResources RepeatFormResources RangeFormResources NoteFormResources

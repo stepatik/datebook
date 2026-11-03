@@ -125,7 +125,7 @@ static __attribute__((section("code2"))) void DayViewUpdateDisplay (UInt16 updat
 
 static __attribute__((section("code2"))) Err SplitRepeatingEvent (UInt16* indexP);
 
-static __attribute__((section("code2"))) Boolean RepeatDescRectHandler(FormGadgetType *gadgetP, UInt16 cmd, void *paramP);
+static __attribute__((section("code2"))) void RepeatDrawDescriptionFrame (void);
 static __attribute__((section("code2"))) void DayViewScroll (WinDirectionType direction, Boolean wrap);
 static __attribute__((section("code2"))) Boolean DayViewClearEditState (void);
 static __attribute__((section("code2"))) void DayViewDrawDate (DateType date);
@@ -2086,6 +2086,7 @@ static __attribute__((section("code2"))) void RepeatDrawDescription (FormPtr frm
 	FldFreeMemory (fld);
 	FldSetTextHandle (fld, descH);
 	FldDrawField (fld);
+	RepeatDrawDescriptionFrame ();
 }
 
 
@@ -2470,36 +2471,14 @@ static __attribute__((section("code2"))) void RepeatApply (void)
  *
  ***********************************************************************/
 
-static __attribute__((section("code2"))) Boolean RepeatDescRectHandler(FormGadgetType *gadgetP, UInt16 cmd, void *paramP)
+static __attribute__((section("code2"))) void RepeatDrawDescriptionFrame (void)
 {
-	FieldPtr 		fld;
-   RectangleType	r;
+	FieldPtr fld = GetObjectPtr (RepeatDescField);
+	RectangleType r;
 
-	switch(cmd)
-	{
-		case formGadgetEraseCmd:
-		case formGadgetDrawCmd:
-
-			// get the repeat description field and calculate a bounding box
-			fld = GetObjectPtr (RepeatDescField);
-			FldGetBounds (fld, &r);
-			RctInsetRectangle (&r, -4);
-
-			if (cmd == formGadgetDrawCmd)
-				WinDrawRectangleFrame (simpleFrame, &r);
-			else
-				WinEraseRectangle (&r, 0);
-			break;
-
-		case formGadgetHandleEventCmd:
-			return false;
-			break;
-
-		default:
-			break;
-	}
-
-	return true;
+	FldGetBounds (fld, &r);
+	RctInsetRectangle (&r, -4);
+	WinDrawRectangleFrame (simpleFrame, &r);
 }
 
 
@@ -2580,8 +2559,6 @@ static __attribute__((section("code2"))) void RepeatInit (FormPtr frm)
 			ShowObject (frm, RepeatEndOnTrigger);
 			break;
 		}
-
-	FrmSetGadgetHandler(frm, FrmGetObjectIndex(frm, RepeatDescRectGadget), RepeatDescRectHandler);
 
 	RepeatStartOfWeek = sunday;
 	RepeatEndDate = details->repeat.repeatEndDate;
@@ -2705,6 +2682,7 @@ __attribute__((section("code2"))) Boolean RepeatHandleEvent (EventType* event)
 		{
 		frm = FrmGetActiveForm ();
 		FrmDrawForm (frm);
+		RepeatDrawDescription (frm);
 		handled = true;
 		}
 
@@ -3876,7 +3854,7 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	FontID curFont;
 	Char* desc;
 	MemHandle recordH;
-	RectangleType eraseRect, drawRect;
+	RectangleType eraseRect;
 	ApptDBRecordType	apptRec;
 	UInt16 descLen, ellipsisWidth;
 	Char* linefeedP;
@@ -3914,7 +3892,6 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	ellipsisWidth = 0;
 
 	RctSetRectangle (&eraseRect, 0, 0, formWidth, FntLineHeight()+4);
-	RctSetRectangle (&drawRect, 0, 0, formWidth, FntLineHeight()+2);
 
 	// Save/Set window colors and font.  Do this after FrmDrawForm() is called
 	// because FrmDrawForm() leaves the fore/back colors in a state that we
@@ -3931,7 +3908,7 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 	// Erase the Form's title area and draw the NoteView's.
 	//
 	WinEraseRectangle (&eraseRect, 0);
-	WinDrawRectangle (&drawRect, 3);
+	WinDrawLine (0, FntLineHeight()+2, formWidth-1, FntLineHeight()+2);
 
 	if (DateTextWidthToFit (desc, descLen, maxWidth, &descWidth) != descLen)
 		{
@@ -3942,18 +3919,12 @@ __attribute__((section("code2"))) Boolean DetailsHandleEvent (EventType* event)
 
 	x = (formWidth - descWidth - ellipsisWidth + 1) / 2;
 
-	if (DayViewHasOS35Features ())
-		WinDrawInvertedChars (desc, descLen, x, 1);
-	else
-		WinDrawChars (desc, descLen, x, 1);
+	WinDrawChars (desc, descLen, x, 1);
 	if (ellipsisWidth != 0)
 		{
 		Char buf[maxCharBytes + sizeOf7BitChar(chrNull)];
 		buf[TxtGlueSetNextChar(buf, 0, chrEllipsis)] = chrNull;
-		if (DayViewHasOS35Features ())
-			WinDrawInvertedChars (buf, StrLen(buf), x + descWidth, 1);
-		else
-			WinDrawChars (buf, StrLen(buf), x + descWidth, 1);
+		WinDrawChars (buf, StrLen(buf), x + descWidth, 1);
 		}
 
 	// Now that we've drawn everything, blast it all back on the screen at once.
@@ -8007,7 +7978,15 @@ static __attribute__((section("code2"))) Boolean DayViewHandleCtlSelect (EventTy
 	else if (controlID == DayDetailsButton)
 		{
 		if (ItemSelected)
+			{
+			// Commit the description field before DetailsInit reads the record.
+			// The Details button is deliberately excluded from
+			// DayViewHandleCtlEnter so the current appointment stays selected,
+			// but the table field still needs to release its record handle.
+			table = GetObjectPtr (DayTable);
+			TblReleaseFocus (table);
 			FrmPopupForm (DetailsDialog);
+			}
 		else
 			FrmAlert (SelectItemAlert);
 		handled = true;
