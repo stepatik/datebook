@@ -55,6 +55,7 @@
 #define MonthMonthViewButton				1206
 #define MonthGoToButton						1208
 #define MonthGadget							1209
+#define MonthSyncButton						1210
 
 
 // Details Dialog Box
@@ -244,6 +245,15 @@
 #define MonthDisplayOptionsCmd			301
 #define MonthSecurityCmd					302
 #define MonthGetInfoCmd						303
+#define MonthSyncCmd							304
+
+// Sync diagnostics dialog
+#define MonthSyncDebugDialog				1220
+#define MonthSyncDebugResultLabel		1221
+#define MonthSyncDebugStageLabel		1222
+#define MonthSyncDebugEventsLabel		1223
+#define MonthSyncDebugBytesLabel		1224
+#define MonthSyncDebugOKButton			1225
 
 
 // Strings

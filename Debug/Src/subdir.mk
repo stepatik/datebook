@@ -6,6 +6,7 @@
 com.palmsource.eclipse.palmos4dev.compiler.m68k_palmos_C_SRCS += \
 ${addprefix $(ROOT)/Src/, \
 DateAlarm.c \
+CalendarSync.c \
 DateDB.c \
 DateDay.c \
 DateDisplay.c \
