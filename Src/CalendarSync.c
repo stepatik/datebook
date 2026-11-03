@@ -576,19 +576,19 @@ UInt32 palmID, start, end, modified, lastModified;
 			modified = lastModified ? lastModified : TimGetSeconds ();
 			syncTxLine[0] = '\0';
 			length = 0;
-			SyncAppendEscaped (syncTxLine, sizeof (syncTxLine), &length, "P");
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, palmID);
-			SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, googleID, syncGoogleIDSize - 1);
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, modified);
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, windowStart);
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, windowStart);
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, 0);
-			SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, "", 0);
-			SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, "", 0);
-			SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, "", 0);
-			SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, "", 0);
-			SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, 1);
-			if (length + 1 >= sizeof (syncTxLine)) return dmErrInvalidParam;
+			SyncAppendEscaped (syncTxLine, syncLineSize, &length, "P");
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, palmID);
+			SyncAppendField (syncTxLine, syncLineSize, &length, googleID, syncGoogleIDSize - 1);
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, modified);
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, windowStart);
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, windowStart);
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, 0);
+			SyncAppendField (syncTxLine, syncLineSize, &length, "", 0);
+			SyncAppendField (syncTxLine, syncLineSize, &length, "", 0);
+			SyncAppendField (syncTxLine, syncLineSize, &length, "", 0);
+			SyncAppendField (syncTxLine, syncLineSize, &length, "", 0);
+			SyncAppendNumber (syncTxLine, syncLineSize, &length, 1);
+			if (length + 1 >= syncLineSize) return dmErrInvalidParam;
 			syncTxLine[length++] = '\n';
 			syncTxLine[length] = '\0';
 			err = SyncSend (syncTxLine);
@@ -617,22 +617,22 @@ UInt32 palmID, start, end, modified, lastModified;
 		SyncBuildRule (&appt, rule, sizeof (rule));
 		syncTxLine[0] = '\0';
 		length = 0;
-		SyncAppendEscaped (syncTxLine, sizeof (syncTxLine), &length, "P");
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, palmID);
-		SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, googleID, syncGoogleIDSize - 1);
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, modified);
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, start);
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, end);
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length,
+		SyncAppendEscaped (syncTxLine, syncLineSize, &length, "P");
+		SyncAppendNumber (syncTxLine, syncLineSize, &length, palmID);
+		SyncAppendField (syncTxLine, syncLineSize, &length, googleID, syncGoogleIDSize - 1);
+		SyncAppendNumber (syncTxLine, syncLineSize, &length, modified);
+		SyncAppendNumber (syncTxLine, syncLineSize, &length, start);
+		SyncAppendNumber (syncTxLine, syncLineSize, &length, end);
+		SyncAppendNumber (syncTxLine, syncLineSize, &length,
 				((Int16) TimeToInt (appt.when->startTime) == apptNoTime) ? 1 : 0);
-		SyncAppendField (syncTxLine, sizeof (syncTxLine), &length,
+		SyncAppendField (syncTxLine, syncLineSize, &length,
 				appt.description ? appt.description : "", maxDescSize - 1);
-		SyncAppendField (syncTxLine, sizeof (syncTxLine), &length,
+		SyncAppendField (syncTxLine, syncLineSize, &length,
 				appt.note ? appt.note : "", maxDescSize - 1);
-		SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, "", 0);
-		SyncAppendField (syncTxLine, sizeof (syncTxLine), &length, rule, sizeof (rule) - 1);
-		SyncAppendNumber (syncTxLine, sizeof (syncTxLine), &length, deleted ? 1 : 0);
-		if (length + 1 >= sizeof (syncTxLine))
+		SyncAppendField (syncTxLine, syncLineSize, &length, "", 0);
+		SyncAppendField (syncTxLine, syncLineSize, &length, rule, sizeof (rule) - 1);
+		SyncAppendNumber (syncTxLine, syncLineSize, &length, deleted ? 1 : 0);
+		if (length + 1 >= syncLineSize)
 			{
 			MemHandleUnlock (recordH);
 			return dmErrInvalidParam;
