@@ -36,6 +36,7 @@
 #include <TxtGlue.h>
 
 #include "Datebook.h"
+#include "CalendarSync.h"
 
 /***********************************************************************
  *
@@ -969,13 +970,15 @@ void* GetObjectPtr (UInt16 objectID)
 void DirtyRecord (DmOpenRef dbP, UInt16 index)
 {
 	UInt16		attr;
+	UInt32		uniqueID;
 	Err			err;
 
-	err = DmRecordInfo (dbP, index, &attr, NULL, NULL);
+	err = DmRecordInfo (dbP, index, &attr, &uniqueID, NULL);
 	ErrFatalDisplayIf (err, "Invalid index");
 
 	attr |= dmRecAttrDirty;
 	DmSetRecordInfo (dbP, index, &attr, NULL);
+	CalendarSyncRecordModified (uniqueID);
 }
 
 
@@ -1045,6 +1048,9 @@ Boolean ClearEditState (void)
 		// This can occur when a new empty record is deleted.
 		if (RecordDirty)
 			{
+			UInt32 uniqueID;
+			if (DmRecordInfo (ApptDB, recordNum, NULL, &uniqueID, NULL) == errNone)
+				CalendarSyncRecordModified (uniqueID);
 			DmDeleteRecord (ApptDB, recordNum);
 			DmMoveRecord (ApptDB, recordNum, DmNumRecords (ApptDB));
 			}

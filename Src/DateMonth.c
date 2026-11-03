@@ -15,8 +15,55 @@
 
 #include <PalmOS.h>
 #include "Datebook.h"
+#include "CalendarSync.h"
 
 extern void PrintApptRecord (DmOpenRef dbP, UInt16 index);
+
+static Char monthSyncStatus[40];
+
+static __attribute__((section("code3"))) void MonthViewDrawSyncStatus (Err syncErr,
+		UInt16 received, UInt16 applied, UInt16 skipped, UInt16 stage,
+		UInt16 eventIndex, UInt16 lineLength)
+	{
+	RectangleType bounds;
+	Char line[40];
+	Int16 y;
+
+	/* Cover the calendar grid with readable diagnostics, while keeping the
+	 * title and the controls at the bottom of MonthView visible. */
+	RctSetRectangle (&bounds, 0, 20, 160, 104);
+	WinEraseRectangle (&bounds, 0);
+	y = 30;
+	if (syncErr != errNone)
+		{
+		StrCopy (line, "Sync error: ");
+		StrIToA (line + StrLen (line), (UInt16) syncErr);
+		}
+	else
+		StrCopy (line, "Sync completed");
+	WinDrawChars (line, StrLen (line), 8, y);
+	y += 16;
+	StrCopy (line, "Stage: ");
+	StrIToA (line + StrLen (line), stage);
+	StrCat (line, "  Event: ");
+	StrIToA (line + StrLen (line), eventIndex);
+	WinDrawChars (line, StrLen (line), 8, y);
+	y += 16;
+	StrCopy (line, "Received: ");
+	StrIToA (line + StrLen (line), received);
+	WinDrawChars (line, StrLen (line), 8, y);
+	y += 16;
+	StrCopy (line, "Applied: ");
+	StrIToA (line + StrLen (line), applied);
+	StrCat (line, "  Skipped: ");
+	StrIToA (line + StrLen (line), skipped);
+	WinDrawChars (line, StrLen (line), 8, y);
+	y += 16;
+	StrCopy (line, "Last line: ");
+	StrIToA (line + StrLen (line), lineLength);
+	StrCat (line, " bytes");
+	WinDrawChars (line, StrLen (line), 8, y);
+	}
 
 
 /***********************************************************************
@@ -1189,6 +1236,8 @@ static void MonthViewScroll (MonthPtr monthP, WinDirectionType direction)
 static Boolean MonthViewDoCommand (UInt16 command)
 {
 	MonthPtr monthP = MonthViewGetMonthPtr();
+	UInt16 received, applied, skipped, stage, eventIndex, lineLength;
+	Err syncErr;
 	
 	// Preferences
 	if (command == MonthPreferencesCmd)
@@ -1208,6 +1257,36 @@ static Boolean MonthViewDoCommand (UInt16 command)
 	// About
 	else if (command == MonthGetInfoCmd)
 		AbtShowAbout (sysFileCDatebook);
+
+	else if (command == MonthSyncCmd)
+		{
+		syncErr = CalendarSyncWithPC ();
+		CalendarSyncGetStats (&received, &applied, &skipped,
+				&stage, &eventIndex, &lineLength);
+		if (syncErr != errNone)
+			{
+			StrCopy (monthSyncStatus, "E");
+			StrIToA (monthSyncStatus + StrLen (monthSyncStatus), (UInt16) syncErr);
+			}
+		else
+			StrCopy (monthSyncStatus, "OK");
+		StrCat (monthSyncStatus, " S");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), stage);
+		StrCat (monthSyncStatus, " I");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), eventIndex);
+		StrCat (monthSyncStatus, " R");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), received);
+		StrCat (monthSyncStatus, " A");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), applied);
+		StrCat (monthSyncStatus, " K");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), skipped);
+		StrCat (monthSyncStatus, " B");
+		StrIToA (monthSyncStatus + StrLen (monthSyncStatus), lineLength);
+		FrmCopyTitle (FrmGetFormPtr (MonthView), monthSyncStatus);
+		FrmDrawForm (FrmGetFormPtr (MonthView));
+		MonthViewDrawSyncStatus (syncErr, received, applied, skipped,
+				stage, eventIndex, lineLength);
+		}
 
 	return (true);
 }
@@ -1312,8 +1391,14 @@ static void MonthViewInit (FormPtr frm)
 	else if (event->eType == keyDownEvent)
 		{
 		MonthViewHideTime (true);
+		if ((event->data.keyDown.modifiers & commandKeyMask) &&
+				(event->data.keyDown.chr == 's' || event->data.keyDown.chr == 'S'))
+			{
+			MonthViewDoCommand (MonthSyncCmd);
+			handled = true;
+			}
 
-		if (TxtCharIsHardKey(event->data.keyDown.modifiers, event->data.keyDown.chr))
+		else if (TxtCharIsHardKey(event->data.keyDown.modifiers, event->data.keyDown.chr))
 			{
 			DateSecondsToDate (TimGetSeconds (), &date);
 			Date = date;
@@ -1358,6 +1443,11 @@ static void MonthViewInit (FormPtr frm)
 			{
 			case MonthGoToButton:
 				MonthViewGotoDate ();
+				handled = true;
+				break;
+
+			case MonthSyncButton:
+				MonthViewDoCommand (MonthSyncCmd);
 				handled = true;
 				break;
 

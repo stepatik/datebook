@@ -22,6 +22,7 @@
 // Set this to get to private database defines
 #define __APPTMGR_PRIVATE__
 #include "Datebook.h"
+#include "CalendarSync.h"
 
 
 /***********************************************************************
@@ -2557,6 +2558,7 @@ __attribute__((section("code4"))) Err ApptChangeRecord(DmOpenRef dbP, UInt16 *in
 	UInt16 attributes;
 	Boolean dontMove;
 	MemHandle oldH;
+	UInt32 uniqueID;
 	MemHandle srcH;
 	MemHandle dstH;
 	ApptDBRecordType src;
@@ -2654,6 +2656,9 @@ attachRecord:
 	if (result) return result;
 
 	MemHandleFree(oldH);
+	if (dbP == ApptDB &&
+			DmRecordInfo (dbP, *index, NULL, &uniqueID, NULL) == errNone)
+		CalendarSyncRecordModified (uniqueID);
 
 	#if	EMULATION_LEVEL != EMULATION_NONE
 		ECApptDBValidate (dbP);
@@ -2706,7 +2711,15 @@ __attribute__((section("code4"))) Err ApptNewRecord(DmOpenRef dbP, ApptDBRecordP
 	if (err) 
 		MemHandleFree(recordH);
 	else
+		{
 		*index = newIndex;
+		if (dbP == ApptDB)
+			{
+			UInt32 uniqueID;
+			if (DmRecordInfo (dbP, *index, NULL, &uniqueID, NULL) == errNone)
+				CalendarSyncRecordModified (uniqueID);
+			}
+		}
 	
 	return err;
 }

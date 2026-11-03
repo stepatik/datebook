@@ -45,6 +45,7 @@
 
 #include "DateAlarm.h"
 #include "Datebook.h"
+#include "CalendarSync.h"
 
 /***********************************************************************
  *
@@ -635,6 +636,7 @@ static __attribute__((section("code2"))) void HideObject (FormPtr frm, UInt16 ob
 static __attribute__((section("code2"))) Boolean DeleteRecord (UInt16 recordNum)
 {
 	Err err = errNone;
+	UInt32 uniqueID;
 	UInt16 ctlIndex;
 	UInt16 alertButton = RangeAllButton;
 	FormPtr alert;
@@ -730,6 +732,8 @@ static __attribute__((section("code2"))) Boolean DeleteRecord (UInt16 recordNum)
 				SaveBackup = archive;
 
 				// Delete or archive the record
+				if (DmRecordInfo (ApptDB, recordNum, NULL, &uniqueID, NULL) == errNone)
+					CalendarSyncRecordModified (uniqueID);
 				if (archive)
 					DmArchiveRecord (ApptDB, recordNum);
 				else
@@ -3085,6 +3089,7 @@ static __attribute__((section("code2"))) Boolean DetailsApply (DetailsPtr detail
 {
 	Err					err = 0;
 	UInt16				attr;
+	UInt32				uniqueID;
 	UInt16				id;
 	UInt16				repeatOn;
 	UInt16				dayOfWeek;
@@ -3471,7 +3476,7 @@ static __attribute__((section("code2"))) Boolean DetailsApply (DetailsPtr detail
 	// Save the new secret status if it's been changed.
 	else if (attrDirty)
 		{
-		DmRecordInfo (ApptDB, CurrentRecord, &attr, NULL, NULL);
+		DmRecordInfo (ApptDB, CurrentRecord, &attr, &uniqueID, NULL);
 		if (details->secret)
 			attr |= dmRecAttrSecret;
 		else
@@ -3479,6 +3484,7 @@ static __attribute__((section("code2"))) Boolean DetailsApply (DetailsPtr detail
 
 		attr |= dmRecAttrDirty;
 		DmSetRecordInfo (ApptDB, CurrentRecord, &attr, NULL);
+		CalendarSyncRecordModified (uniqueID);
 		}
 
 	// If the alarm info has been changed, or if the appointment has

@@ -8,20 +8,21 @@ PILRC := pilrc
 
 SDK_VERSION ?= sdk-3.5
 APP_NAME ?= Calendar
-CREATOR_ID ?= PLM1
+CREATOR_ID ?= STP1
 
 CFLAGS := -D__PALMOS__=0x03500000 -O2 -g -fexceptions -UNDEBUG -Wall \
 	$(subst sdk-,-palmos,$(SDK_VERSION))
-SOURCES := DateAlarm DateDB DateDay DateDisplay DateGlobals DateMonth DatePref DateWeek Datebook
+SOURCES := DateAlarm CalendarSync DateDB DateDay DateDisplay DateGlobals DateMonth DatePref DateWeek Datebook
 OBJECTS := $(addprefix Src/,$(addsuffix .o,$(SOURCES)))
 RESOURCE_BINS := $(wildcard $(ROOT)/Resources/Bins/*.bin)
 DAYVIEW_FORM_BIN := DayViewTestResources/tFRM03e8.bin
 WEEKVIEW_FORM_BIN := WeekViewTestResources/tFRM044c.bin
 MONTHVIEW_FORM_BIN := MonthViewTestResources/tFRM04b0.bin
+SYNCDEBUG_FORM_BIN := SyncDebugResources/tFRM04c4.bin
 TIMEPICKER_FORM_BIN := TimePickerResources/tFRM08fc.bin
 PACKAGED_RESOURCE_BINS := $(filter-out $(ROOT)/Resources/Bins/tFRM03E8.bin $(ROOT)/Resources/Bins/tFRM044C.bin $(ROOT)/Resources/Bins/tFRM04B0.bin,$(RESOURCE_BINS)) \
 	$(DAYVIEW_FORM_BIN) $(WEEKVIEW_FORM_BIN) $(MONTHVIEW_FORM_BIN) \
-	$(TIMEPICKER_FORM_BIN)
+	$(SYNCDEBUG_FORM_BIN) $(TIMEPICKER_FORM_BIN)
 
 .PHONY: all clean
 all: $(APP_NAME).prc
@@ -53,6 +54,11 @@ $(MONTHVIEW_FORM_BIN): $(ROOT)/rsc/DateMonthTest.rcp
 	$(PILRC) -I $(ROOT)/rsc $< MonthViewTestResources
 	test -s $@
 
+$(SYNCDEBUG_FORM_BIN): $(ROOT)/rsc/CalendarSyncDebug.rcp
+	mkdir -p SyncDebugResources
+	$(PILRC) -I $(ROOT)/rsc $< SyncDebugResources
+	test -s $@
+
 $(TIMEPICKER_FORM_BIN): $(ROOT)/rsc/DateTimePicker.rcp
 	mkdir -p TimePickerResources
 	$(PILRC) -I $(ROOT)/rsc $< TimePickerResources
@@ -65,4 +71,4 @@ clean:
 	rm -f $(OBJECTS) $(addprefix Src/,$(addsuffix .d,$(SOURCES))) \
 		multiple_code_sections.s multiple_code_sections.ld multiple_code_sections.o \
 		DateBook $(APP_NAME).prc
-	rm -rf DayViewTestResources WeekViewTestResources MonthViewTestResources TimePickerResources
+	rm -rf DayViewTestResources WeekViewTestResources MonthViewTestResources SyncDebugResources TimePickerResources

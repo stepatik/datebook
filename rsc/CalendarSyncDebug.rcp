@@ -1,0 +1,13 @@
+/* Modal diagnostics shown after each manual MonthView synchronization. */
+
+FORM ID 1220 AT (5 28 150 108) NOFRAME USABLE MODAL
+BEGIN
+    TITLE "Sync diagnostics"
+
+    LABEL "Result" ID 1221 AT (8 23)
+    LABEL "Stage" ID 1222 AT (8 40)
+    LABEL "Events" ID 1223 AT (8 57)
+    LABEL "Bytes" ID 1224 AT (8 74)
+
+    BUTTON "OK" ID 1225 AT (52 88 46 14)
+END
