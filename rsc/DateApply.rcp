@@ -1,0 +1,16 @@
+/* Repeating-event range prompt rebuilt with PilRC for Palm OS 3.5. */
+
+FORM ID 2100 AT (2 36 156 122) USABLE MODAL SAVEBEHIND DEFAULTBTNID 2105
+BEGIN
+    TITLE "Repeating Event"
+
+    LABEL "Apply the changes to:" ID 2102 AT (27 19)
+    LABEL "- the Current record," ID 2107 AT (27 32)
+    LABEL "- this & all Future records," ID 2108 AT (27 45)
+    LABEL "- All occurrences?" ID 2109 AT (27 58)
+
+    BUTTON "Current" ID 2103 AT (9 72 61 12)
+    BUTTON "Future" ID 2104 AT (9 89 61 12)
+    BUTTON "All" ID 2105 AT (9 106 61 12)
+    BUTTON "Cancel" ID 2106 AT (105 106 44 12)
+END
